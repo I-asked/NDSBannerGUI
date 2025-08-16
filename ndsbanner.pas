@@ -71,6 +71,7 @@ type
   end;
   {$POP}
 
+{$PUSH}{$WARN 5027 off : Local variable "$1" is assigned but never used}
 procedure CreateNDSBanner(InFile: String; OutStr: TStream; Text: UnicodeString);
 var
   Status: MagickBooleanType;
@@ -81,10 +82,10 @@ var
   Banner: TNDSBanner;
   TmpVal16: Word;
   TmpVal8: Byte;
-  TmpPByte: PByte;
   UniChar: WChar;
   HasTrans: Boolean;
   Delay, TPS: LongWord;
+  TmpPByte: PByte;
   TmpDither: Integer = 0;
   TmpMErr: Integer = 0;
 
@@ -234,6 +235,7 @@ begin
       OutStr.Write(TmpPByte, $1220);
   end;
 end;
+{$POP}
 
 end.
 
