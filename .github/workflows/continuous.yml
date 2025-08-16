@@ -61,11 +61,10 @@ jobs:
         Copy-Item -Path (Join-Path $lazfpc "fpc.cfg") -Destination fpc.cfg
         Add-Content -Path fpc.cfg -Value "-Fl${maglib}"
         lazbuild.exe NDSBannerGUI.lpi --ws=win32
-        New-Item -Path dist -ItemType Directory -Force
-        Copy-Item -Path NDSBannerGUI.exe -Destination dist\
-        Copy-Item -Path $magdir -Destination dist\ -Filter *.dll -Recurse
+        Copy-Item -Path $magdir -Destination .\ -Filter *.dll -Recurse
+        Copy-Item -Path NDSBannerGUI.exe -Destination magick\
     - uses: actions/upload-artifact@v4
       with:
         name: ndsbannergui-x86_64-win64
-        path: dist
+        path: magick
 
