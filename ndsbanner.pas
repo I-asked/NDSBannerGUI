@@ -5,7 +5,7 @@ unit NDSBanner;
 interface
 
 uses
-  ctypes, Classes, SysUtils, magick_wand, ImageMagick;
+  ctypes, Math, Classes, SysUtils, magick_wand, ImageMagick;
 
 procedure CreateNDSBanner(InFile: String; OutStr: TStream; Text: UnicodeString);
 
@@ -151,14 +151,12 @@ begin
     Status := MagickReadImage(Wand, PAnsiChar(InFile));
     if Status = MagickFalse then ThrowWandException(Wand);
 
+    Count := MagickGetNumberImages(Wand);
     MagickResetIterator(Wand);
 
     I := 0;
     while MagickNextImage(Wand) <> MagickFalse do
     begin
-      if I > 7 then
-        raise Exception.Create('Animation too long (8 frames max)');
-
       PalPtr := 0;
 
       Delay := MagickGetImageDelay(Wand);
@@ -170,11 +168,11 @@ begin
 
       Buf := MagickGetImageBlob(Wand, @Size);
       for J := 0 to Size div 4 do
-          if Buf[J * 4 + 3] < 127 then
-          begin
-            HasTrans := True;
-            Break;
-          end;
+        if Buf[J * 4 + 3] < 127 then
+        begin
+          HasTrans := True;
+          Break;
+        end;
       Buf := MagickRelinquishMemory(Buf);
 
       MagickQuantizeImage(Wand, 15 + LongInt(HasTrans), RGBColorspace, 0, TmpDither, TmpMErr);
@@ -200,6 +198,9 @@ begin
           end;
       end;
       Buf := MagickRelinquishMemory(Buf);
+
+      for J := 1 to Ceil(Count / 8) - 1 do
+        MagickNextImage(Wand);
 
       Inc(I);
     end;

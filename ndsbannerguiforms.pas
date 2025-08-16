@@ -23,7 +23,7 @@ type
     procedure SaveButtonClick(Sender: TObject);
   private
     InFile: String;
-    procedure UpdatePreview;
+    procedure LoadInputFile(FileName: String);
     procedure SaveHeaderBin(FileName: String);
   end;
 
@@ -36,17 +36,23 @@ implementation
 
 { TNDSBannerForm }
 
-procedure TNDSBannerForm.UpdatePreview;
+procedure TNDSBannerForm.LoadInputFile(FileName: String);
 begin
-  if FileExists(InFile) then
+  if FileExists(FileName) then
   begin
-    ImagePreview.Picture.LoadFromFile(InFile);
-    SaveButton.Enabled := True;
-    Title.Lines.Clear;
-    Title.Lines.Add(ExtractFileNameOnly(InFile));
+    try
+      ImagePreview.Picture.LoadFromFile(FileName);
+
+      InFile := FileName;
+
+      SaveButton.Enabled := True;
+      Title.Lines.Clear;
+      Title.Lines.Add(ExtractFileNameOnly(FileName));
+    except
+      on E: Exception do
+        MessageDlg('Load failed', E.Message, mtError, [mbOK], 0);
+    end;
   end
-  else
-    SaveButton.Enabled := False;
 end;
 
 procedure TNDSBannerForm.SaveHeaderBin(FileName: String);
@@ -55,13 +61,18 @@ var
   Line: String;
   TitleRaw: UnicodeString;
 begin
-  Stream := TBufferedFileStream.Create(FileName, fmOpenWrite);
+  Stream := TBufferedFileStream.Create(FileName, fmCreate);
   TitleRaw := '';
   for Line in Title.Lines do
     TitleRaw := TitleRaw + UnicodeString(Line) + sLineBreak;
   TitleRaw := TrimRight(TitleRaw);
   try
-    CreateNDSBanner(InFile, Stream, TitleRaw);
+    try
+      CreateNDSBanner(InFile, Stream, TitleRaw);
+    except
+      on E: Exception do
+        MessageDlg('Processing failed', E.Message, mtError, [mbOK], 0);
+    end;
   finally
     Stream.Destroy;
   end;
@@ -70,10 +81,7 @@ end;
 procedure TNDSBannerForm.LoadButtonClick(Sender: TObject);
 begin
   if OpenDialog.Execute then
-  begin
-    InFile := OpenDialog.FileName;
-    UpdatePreview;
-  end;
+    LoadInputFile(OpenDialog.FileName);
 end;
 
 procedure TNDSBannerForm.SaveButtonClick(Sender: TObject);
