@@ -1,0 +1,68 @@
+name: continuous
+on:
+  push:
+    branches:
+    - main
+jobs:
+  x86_64-linux:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: 'Setup FPC'
+      shell: bash
+      run: |
+        set -x
+        export DEBIAN_FRONTEND=noninteractive
+        sudo -E apt-get update
+        sudo -E apt-get install -y build-essential libqt5pas-dev lcl-qt5 libmagickwand-6.q16-dev fpc lazarus
+        sudo ln -fs /usr/lib/x86_64-linux-gnu/libMagickWand{-6.Q16,}.so
+        sudo ln -fs /usr/lib/x86_64-linux-gnu/libMagickCore{-6.Q16,}.so
+    - uses: actions/checkout@v4
+    - name: 'Build NDSBannerGUI'
+      shell: bash
+      run: lazbuild NDSBannerGUI.lpi --ws=qt5
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ndsbannergui-x86_64-linux
+        path: NDSBannerGUI
+  x86_64-win64:
+    runs-on: windows-2025
+    steps:
+    - name: 'Setup Magick'
+      shell: pwsh
+      run: |
+        $magdir = Join-Path $env:UserProfile "magick"
+        $maglib = Join-Path $magdir "lib"
+        New-Item -Path $magdir -ItemType Directory -Force
+        $downloadUrl = "https://imagemagick.org/archive/binaries/ImageMagick-6.9.13-27-Q16-x64-dll.exe"
+        $inst = Join-Path $env:RUNNER_TEMP "ImageMagick.exe"
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $inst -UseBasicParsing
+        Start-Process -FilePath $inst -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /TASKS=install_devel /DIR=${magdir}" -Wait
+        Copy-Item -Path (Join-Path $maglib "CORE_RL_magick_.lib") -Destination (Join-Path $maglib "MagickCore.lib")
+        Copy-Item -Path (Join-Path $maglib "CORE_RL_wand_.lib") -Destination (Join-Path $maglib "MagickWand.lib")
+    - name: 'Setup Lazarus'
+      shell: pwsh
+      run: |
+        $lazhome = "C:\lazarus"
+        $lazfpc = Join-Path $lazhome "fpc\3.2.2\bin\x86_64-win64"
+        $downloadUrl = "https://download.lazarus-ide.org/Lazarus%20Windows%2064%20bits/Lazarus%204.2/lazarus-4.2-fpc-3.2.2-win64.exe"
+        $inst = Join-Path $env:RUNNER_TEMP "lazarus.exe"
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $inst -UseBasicParsing
+        Start-Process -FilePath $inst -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /TYPE=full /DIR=${lazhome}" -Wait
+        Add-Content -Path $env:GITHUB_PATH -Value $lazfpc
+        Add-Content -Path $env:GITHUB_PATH -Value $lazhome
+    - uses: actions/checkout@v4
+    - name: 'Build NDSBannerGUI'
+      shell: pwsh
+      run: |
+        $magdir = Join-Path $env:UserProfile "magick"
+        $maglib = Join-Path $magdir "lib"
+        $lazhome = "C:\lazarus"
+        $lazfpc = Join-Path $lazhome "fpc\3.2.2\bin\x86_64-win64"
+        Copy-Item -Path (Join-Path $lazfpc "fpc.cfg") -Destination fpc.cfg
+        Add-Content -Path fpc.cfg -Value "-Fl${maglib}"
+        lazbuild.exe NDSBannerGUI.lpi --ws=win32
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ndsbannergui-x86_64-win64
+        path: NDSBannerGUI.exe
+

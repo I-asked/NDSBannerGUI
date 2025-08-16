@@ -81,6 +81,7 @@ var
   Banner: TNDSBanner;
   TmpVal16: Word;
   TmpVal8: Byte;
+  TmpPByte: PByte;
   UniChar: WChar;
   HasTrans: Boolean;
   Delay, TPS: LongWord;
@@ -225,10 +226,11 @@ begin
     for TmpVal16 in CRC do
       OutStr.WriteWord(NtoLE(TmpVal16));
 
+    TmpPByte := PByte(@Banner) + $20;
     if Version >= $0103 then
-      OutStr.WriteData(PByte(@Banner) + $20, SizeOf(Banner) - $20)
+      OutStr.Write(TmpPByte, SizeOf(Banner) - $20)
     else
-      OutStr.WriteData(PByte(@Banner) + $20, $1220);
+      OutStr.Write(TmpPByte, $1220);
   end;
 end;
 
