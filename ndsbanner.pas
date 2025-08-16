@@ -159,9 +159,11 @@ begin
     while MagickNextImage(Wand) <> MagickFalse do
     begin
       PalPtr := 0;
+      if I > 7 then
+        raise Exception.Create('Frame > 7');
 
-      Delay := MagickGetImageDelay(Wand);
       TPS := MagickGetImageTicksPerSecond(Wand);
+      Delay := Round((Real(MagickGetImageDelay(Wand)) / TPS) * 60.0);
 
       MagickSetImageFormat(Wand, 'rgba');
       MagickSetImageDepth(Wand, 8);
@@ -185,9 +187,12 @@ begin
 
         AnimPalette[I, 0] := $7FFF;
 
-        AnimSeq[I] := Byte(Round((Real(Delay) / TPS) * 60.0));
-        if AnimSeq[I] = 0 then
-          AnimSeq[I] := 1;
+        if Delay > $FF then
+          AnimSeq[(I + 1) mod 8] := $FF
+        else if Delay = 0 then
+          AnimSeq[(I + 1) mod 8] := 1
+        else
+          AnimSeq[(I + 1) mod 8] := Delay;
 
         for Y := 0 to 31 do
           for X := 0 to 15 do
@@ -200,8 +205,20 @@ begin
       end;
       Buf := MagickRelinquishMemory(Buf);
 
+      Delay := 0;
       for J := 1 to Ceil(Count / 8) - 1 do
+      begin
         MagickNextImage(Wand);
+
+        TPS := MagickGetImageTicksPerSecond(Wand);
+        Delay := Round((Real(MagickGetImageDelay(Wand)) / TPS) * 60.0);
+
+        with Banner do
+          if (AnimSeq[(I + 1) mod 8] + Delay) > $FF then
+            AnimSeq[(I + 1) mod 8] := $FF
+          else
+            Inc(AnimSeq[(I + 1) mod 8], Delay);
+      end;
 
       Inc(I);
     end;
@@ -228,11 +245,14 @@ begin
     for TmpVal16 in CRC do
       OutStr.WriteWord(NtoLE(TmpVal16));
 
+    { should use TStream.WriteData when it's available... }
     TmpPByte := PByte(@Banner) + $20;
     if Version >= $0103 then
-      OutStr.Write(TmpPByte, SizeOf(Banner) - $20)
+      for J := 0 to SizeOf(Banner) - $20 - 1 do
+        OutStr.WriteByte(TmpPByte[J])
     else
-      OutStr.Write(TmpPByte, $1220);
+      for J := 0 to $1220 - 1 do
+        OutStr.WriteByte(TmpPByte[J])
   end;
 end;
 {$POP}
