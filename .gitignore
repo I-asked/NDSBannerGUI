@@ -1,0 +1,20 @@
+# Free Pascal
+*.lps
+*.compiled
+*.[oa]
+*.ppu
+*.rst
+*.cgi
+*.exe
+*.log
+*.res
+*.bak*
+fp.ini
+fp.cfg
+fp.dsk
+
+lib/
+backup/
+
+/NDSBannerGUI
+/NDSBannerGUI.exe
